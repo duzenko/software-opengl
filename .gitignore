@@ -1,0 +1,8 @@
+test3/
+swgl/__history/
+source/__history/
+test/__history/
+dcu/
+bin/
+*.identcache
+*.local

@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{3FDE0A06-B25C-4C98-91E8-0AA6C85ECD9C}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="swgl\OpenGL32.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="test\Squares.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="OpenGL32">
+        <MSBuild Projects="swgl\OpenGL32.dproj"/>
+    </Target>
+    <Target Name="OpenGL32:Clean">
+        <MSBuild Projects="swgl\OpenGL32.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="OpenGL32:Make">
+        <MSBuild Projects="swgl\OpenGL32.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Squares">
+        <MSBuild Projects="test\Squares.dproj"/>
+    </Target>
+    <Target Name="Squares:Clean">
+        <MSBuild Projects="test\Squares.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="Squares:Make">
+        <MSBuild Projects="test\Squares.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="OpenGL32;Squares"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="OpenGL32:Clean;Squares:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="OpenGL32:Make;Squares:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>
