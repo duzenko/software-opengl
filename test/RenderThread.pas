@@ -51,12 +51,31 @@ begin        //exit;
   else
     glShadeModel(GL_SMOOTH); //Сглаживание. По умолчанию установлен режим GL_SMOOTH.
 
-  glBegin(GL_QUADS);
-    glColor3f(1, 0, 0); glVertex3f(-1, -1, 0);
-    glColor3f(0, 1, 0); glVertex3f(1, -1, 0);
-    glColor3f(0, 0, 1); glVertex3f(1, 1, 0);
-    glColor3f(1, 1, 0); glVertex3f(-1, 1, 0);
-  glEnd;
+glpushMatrix;
+glTranslatef(-5,0,0);
+glutSolidCube(1);      //Куб
+glPopmatrix;
+
+glpushMatrix;
+glTranslatef(5,0,0);
+glutSolidSphere(2,20,20);  //Сфера
+glPopmatrix;
+
+glpushMatrix;
+glTranslatef(0,5,0);
+glutSolidTorus(1,2,20,20);  //Тор
+glPopmatrix;
+
+glpushMatrix;
+glTranslatef(0,-5,0);
+glutSolidDodecahedron();   //Додекаэдр
+glPopmatrix;
+
+glpushMatrix;
+glTranslatef(0,0,2);
+glutSolidCone(2,3,10,10);   //Конус
+glPopmatrix;
+
 end;
 
 procedure TRenderThread.Resize;
@@ -65,18 +84,16 @@ begin
     glViewport(0, 0, ClientWidth, ClientHeight);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity;
-    gluPerspective(45.0, ClientWidth/ClientHeight, 1, 1000);
+    gluPerspective(110, ClientWidth/ClientHeight, 0.1, 1000);
 //    glFrustum ( -ClientWidth/ClientHeight , ClientWidth/ClientHeight , -1 , 1 , 1 , 100.0 ); //Область видимости
 //    gluOrtho2D(-ClientWidth/ClientHeight, ClientWidth/ClientHeight, -1, 1);
   end;
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity; //Сбрасываем текущую матрицу
-  glTranslatef(0, 0, -5);
-//  gluLookAt(5,5,5, 0,0,0, 0,0,1);
+  gluLookAt(5,5,5, 0,0,0, 0,0,1);
   glEnable(GL_DEPTH_TEST); // включаем проверку разрешения фигур (впереди стоящая закрывает фигуру за ней)
-//  glDepthFunc(GL_LEQUAL); //тип проверки
-//  glEnable(GL_LIGHTING); //включаем освещение
-//  glEnable(GL_LIGHT0); //включаем источник света №0
+  glEnable(GL_LIGHTING); //включаем освещение
+  glEnable(GL_LIGHT0); //включаем источник света №0
   CheckGlError;
   Resized := false;
 end;

@@ -222,9 +222,10 @@ var
     addps xmm0, xmm1
     addps xmm0, xmm2
 
-    addps xmm3, xmm4
-    addps xmm3, xmm5
-    divps xmm0, xmm3
+    movss xmm3, TotalAreaRecip
+    mulss xmm3, LightIntensity
+    shufps xmm3, xmm3, 0
+    mulps xmm0, xmm3
 
     cvtps2dq xmm0, xmm0
     packssdw xmm0, xmm0
@@ -332,17 +333,20 @@ begin
   matModelView.MulVec(v3.v, r3);
   if r3.Z = 0 then
     Exit;
-  with v1, r1 do begin
-    p.x := Round((0.5 - X/Z*HorizontalCorrection)*PixelSize.Width);
-    p.y := Round((0.5 - Y/Z*VerticalCorrection)*PixelSize.Height);
+  matProjection.MulVec(r1, v1.v);
+  matProjection.MulVec(r2, v2.v);
+  matProjection.MulVec(r3, v3.v);
+  with v1, v1.v do begin
+    p.x := Round((0.5 + X/W*HorizontalCorrection)*PixelSize.Width);
+    p.y := Round((0.5 + Y/W*VerticalCorrection)*PixelSize.Height);
   end;
-  with v2, r2 do begin
-    p.x := Round((0.5 - X/Z*HorizontalCorrection)*PixelSize.Width);
-    p.y := Round((0.5 - Y/Z*VerticalCorrection)*PixelSize.Height);
+  with v2, v2.v do begin
+    p.x := Round((0.5 + X/W*HorizontalCorrection)*PixelSize.Width);
+    p.y := Round((0.5 + Y/W*VerticalCorrection)*PixelSize.Height);
   end;
-  with v3, r3 do begin
-    p.x := Round((0.5 - X/Z*HorizontalCorrection)*PixelSize.Width);
-    p.y := Round((0.5 - Y/Z*VerticalCorrection)*PixelSize.Height);
+  with v3, v3.v do begin
+    p.x := Round((0.5 + X/W*HorizontalCorrection)*PixelSize.Width);
+    p.y := Round((0.5 + Y/W*VerticalCorrection)*PixelSize.Height);
   end;
   DrawTriangle2D(v1, v2, v3);
 end;
