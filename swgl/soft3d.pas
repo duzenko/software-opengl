@@ -58,8 +58,10 @@ var
   end = (
     (SpotDirection: (Z: -1)), (), (), (), (), (), (), ()
   );
+  ShadeModel: Integer;
 
-  HorizontalCorrection, VerticalCorrection: Single;
+  HorizontalCorrection: Single = 1;
+  VerticalCorrection: Single = 1;
   VertUsed: Integer;
 
 implementation uses
@@ -183,13 +185,51 @@ var
   x, y: Integer;
   v: TVertexData;
   a, b, c: array[0..2] of Single;
-  SqAr: array[0..2] of Integer;
+  SqAr: array[0..2] of DWORD;
   LightIntensity, TotalAreaRecip: Single;
-//  vn: TVector3D;
+  vn: TVector3D;
 
   function Weigh(f1, f2, f3: Single): Single;
   begin
     Result := (f1*SqAr[2]+f2*SqAr[1]+f3*SqAr[0]) * TotalAreaRecip;
+  end;
+
+  function WeighColor(c1, c2, c3: DWORD): DWORD;
+//  begin
+//    Result := Round((c1*SqAr[2]+c2*SqAr[1]+c3*SqAr[0]) * TotalAreaRecip);
+  asm
+    movd xmm0, c1
+    PMOVZXBD xmm0, xmm0
+    cvtdq2ps xmm0, xmm0
+    movd xmm1, c2
+    PMOVZXBD xmm1, xmm1
+    cvtdq2ps xmm1, xmm1
+    movd xmm2, c3
+    PMOVZXBD xmm2, xmm2
+    cvtdq2ps xmm2, xmm2
+
+    cvtsi2ss xmm3, dword ptr[SqAr+8]
+    shufps xmm3, xmm3, 0
+    cvtsi2ss xmm4, dword ptr[SqAr+4]
+    shufps xmm4, xmm4, 0
+    cvtsi2ss xmm5, dword ptr[SqAr+0]
+    shufps xmm5, xmm5, 0
+
+    mulps xmm0, xmm3
+    mulps xmm1, xmm4
+    mulps xmm2, xmm5
+
+    addps xmm0, xmm1
+    addps xmm0, xmm2
+
+    addps xmm3, xmm4
+    addps xmm3, xmm5
+    divps xmm0, xmm3
+
+    cvtps2dq xmm0, xmm0
+    packssdw xmm0, xmm0
+    packuswb xmm0, xmm0
+    movd eax, xmm0
   end;
 
   function Clamp(f: Single): Single;
@@ -206,8 +246,8 @@ var
 begin
   mn.X := Max(0, Min(v1.p.X, Min(v2.p.X, v3.p.X)));
   mn.Y := Max(0, Min(v1.p.Y, Min(v2.p.Y, v3.p.Y)));
-  mx.X := Min(BackBuffer.Width-1, Max(v1.p.X, Max(v2.p.X, v3.p.X)));
-  mx.Y := Min(BackBuffer.Height, Max(v1.p.Y, Max(v2.p.Y, v3.p.Y)));
+  mx.X := Min(PixelSize.cx-1, Max(v1.p.X, Max(v2.p.X, v3.p.X)));
+  mx.Y := Min(PixelSize.cy-1, Max(v1.p.Y, Max(v2.p.Y, v3.p.Y)));
   a[0] := v1.p.Y - v2.p.Y;
   b[0] := v2.p.X - v1.p.X;
   c[0] := (v1.p.X - v2.p.X)*v1.p.Y + (v2.p.Y - v1.p.Y)*v1.p.X;
@@ -218,12 +258,12 @@ begin
   b[2] := v2.p.X - v3.p.X;
   c[2] := (v3.p.X - v2.p.X)*v3.p.Y + (v2.p.Y - v3.p.Y)*v3.p.X;
   V.n.W := 0;
-  if Lighting then begin
+  if Lighting and (ShadeModel = GL_FLAT) then begin
     v.n.X := Mean([v1.n.X, v2.n.X, v3.n.X]);
     v.n.Y := Mean([v1.n.Y, v2.n.Y, v3.n.Y]);
     v.n.Z := Mean([v1.n.Z, v2.n.Z, v3.n.Z]);
-//        matModelView.MulVec(v.n, vn);
-    LightIntensity := Clamp(-v.n.DotProduct(Lights[GL_LIGHT0].SpotDirection));
+    matModelView.MulVec(v.n, vn);
+    LightIntensity := Clamp(-vn.DotProduct(Lights[GL_LIGHT0].SpotDirection));
   end else
     LightIntensity := 1;
   v.r := Round(v1.r*LightIntensity);
@@ -244,18 +284,18 @@ begin
       SqAr[1] := Abs(v1.p.X*(v3.p.Y-v.p.Y)+v3.p.X*(v.p.Y-v1.p.Y)+v.p.X*(v1.p.Y-v3.p.Y));
       SqAr[2] := Abs(v3.p.X*(v2.p.Y-v.p.Y)+v2.p.X*(v.p.Y-v3.p.Y)+v.p.X*(v3.p.Y-v2.p.Y));
       TotalAreaRecip := 1/(SqAr[0] + SqAr[1] + SqAr[2]);
-{      if Lighting then begin
+      if Lighting and (ShadeModel = GL_SMOOTH) then begin
         v.n.X := Weigh(v1.n.X, v2.n.X, v3.n.X);
         v.n.Y := Weigh(v1.n.Y, v2.n.Y, v3.n.Y);
         v.n.Z := Weigh(v1.n.Z, v2.n.Z, v3.n.Z);
-//        matModelView.MulVec(v.n, vn);
-        LightIntensity := Clamp(-v.n.DotProduct(Lights[GL_LIGHT0].SpotDirection));
-      end else
-        LightIntensity := 1;  }
+        matModelView.MulVec(v.n, vn);
+        LightIntensity := Clamp(-vn.DotProduct(Lights[GL_LIGHT0].SpotDirection));
+      end;
 {      v.r := Round(Weigh(v1.r, v2.r, v3.r)*LightIntensity);
       v.g := Round(Weigh(v1.g, v2.g, v3.g)*LightIntensity);
       v.b := Round(Weigh(v1.b, v2.b, v3.b)*LightIntensity);
-      v.a := Round(Weigh(v1.a, v2.a, v3.a)*LightIntensity);  }
+      v.a := Round(Weigh(v1.a, v2.a, v3.a)*LightIntensity);}
+      v.c := WeighColor(v1.c, v2.c, v3.c);
       v.v.Z := Weigh(v1.v.Z, v2.v.Z, v3.v.Z);
       DrawPixel(v);
     end;
@@ -263,7 +303,7 @@ begin
 end;
 
 var
-  DeferredTriangles: TTriangleData;
+  DeferredTriangles: TTriangles2D;
   DeferredCount: Integer;
 procedure DeferTriangle2D(const v1, v2, v3: TVertexData);
 begin
@@ -344,21 +384,25 @@ begin
   matModelView.MulVec(v4.v, r4);
   if r4.Z = 0 then
     Exit;
-  with v1, r1 do begin
-    p.x := Round((0.5 - X/Z*HorizontalCorrection)*PixelSize.Width);
-    p.y := Round((0.5 - Y/Z*VerticalCorrection)*PixelSize.Height);
+  matProjection.MulVec(r1, v1.v);
+  matProjection.MulVec(r2, v2.v);
+  matProjection.MulVec(r3, v3.v);
+  matProjection.MulVec(r4, v4.v);
+  with v1, v1.v do begin
+    p.x := Round((0.5 + X/W*HorizontalCorrection)*PixelSize.Width);
+    p.y := Round((0.5 + Y/W*VerticalCorrection)*PixelSize.Height);
   end;
-  with v2, r2 do begin
-    p.x := Round((0.5 - X/Z*HorizontalCorrection)*PixelSize.Width);
-    p.y := Round((0.5 - Y/Z*VerticalCorrection)*PixelSize.Height);
+  with v2, v2.v do begin
+    p.x := Round((0.5 + X/W*HorizontalCorrection)*PixelSize.Width);
+    p.y := Round((0.5 + Y/W*VerticalCorrection)*PixelSize.Height);
   end;
-  with v3, r3 do begin
-    p.x := Round((0.5 - X/Z*HorizontalCorrection)*PixelSize.Width);
-    p.y := Round((0.5 - Y/Z*VerticalCorrection)*PixelSize.Height);
+  with v3, v3.v do begin
+    p.x := Round((0.5 + X/W*HorizontalCorrection)*PixelSize.Width);
+    p.y := Round((0.5 + Y/W*VerticalCorrection)*PixelSize.Height);
   end;
-  with v4, r4 do begin
-    p.x := Round((0.5 - X/Z*HorizontalCorrection)*PixelSize.Width);
-    p.y := Round((0.5 - Y/Z*VerticalCorrection)*PixelSize.Height);
+  with v4, v4.v do begin
+    p.x := Round((0.5 + X/W*HorizontalCorrection)*PixelSize.Width);
+    p.y := Round((0.5 + Y/W*VerticalCorrection)*PixelSize.Height);
   end;
   DeferTriangle2D(v1, v2, v3);
   DeferTriangle2D(v1, v3, v4);

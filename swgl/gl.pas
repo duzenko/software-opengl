@@ -4,10 +4,13 @@ interface uses
   Windows, Types, OpenGL;
 
 procedure glBegin (mode: GLenum); stdcall;
+procedure glBitmap (width, height: GLsizei; xorig, yorig: GLfloat;
+                    xmove, ymove: GLfloat; bitmap: Pointer); stdcall;
 procedure glClear (mask: GLbitfield); stdcall;
 procedure glClearColor (red, green, blue, alpha: GLclampf); stdcall;
 procedure glColor3f (red, green, blue: GLfloat); stdcall;
 procedure glDisable (cap: GLenum); stdcall;
+procedure glDrawBuffer (mode: GLenum); stdcall;
 procedure glEnable (cap: GLenum); stdcall;
 procedure glEnd; stdcall;
 procedure glEvalCoord1f (u: GLfloat); stdcall;
@@ -19,6 +22,7 @@ function  glGetError: GLenum; stdcall;
 procedure glGetFloatv (pname: GLenum; params: PGLfloat); stdcall;
 procedure glGetIntegerv (pname: GLenum; params: PGLint); stdcall;
 function  glGetString (name: GLenum): PAnsiChar; stdcall;
+procedure glFinish; stdcall;
 procedure glFlush; stdcall;
 procedure glFrustum (left, right, bottom, top, zNear, zFar: GLdouble); stdcall;
 procedure glLoadIdentity; stdcall;
@@ -30,6 +34,8 @@ procedure glMap2f (target: GLenum;
 procedure glMapGrid1f (un: GLint; u1, u2: GLfloat); stdcall;
 procedure glMapGrid2d (un: GLint; u1, u2: GLdouble;
                        vn: GLint; v1, v2: GLdouble); stdcall;
+procedure glMapGrid2f (un: GLint; u1, u2: GLfloat;
+                       vn: GLint; v1, v2: GLfloat); stdcall;
 procedure glMatrixMode (mode: GLenum); stdcall;
 procedure glMultMatrixd (m: PGLdouble); stdcall;
 procedure glMultMatrixf (m: PGLfloat); stdcall;
@@ -43,7 +49,10 @@ procedure glPopAttrib; stdcall;
 procedure glPopMatrix; stdcall;
 procedure glPushAttrib(mask: GLbitfield); stdcall;
 procedure glPushMatrix; stdcall;
+procedure glReadBuffer (mode: GLenum); stdcall;
+procedure glRotatef (angle, x,y,z: GLfloat); stdcall;
 procedure glScalef (x,y,z: GLfloat); stdcall;
+procedure glShadeModel (mode: GLenum); stdcall;
 procedure glTexCoord2f (s,t: GLfloat); stdcall;
 procedure glTexImage1D (target: GLenum; level, components: GLint;
   width: GLsizei; border: GLint; format, _type: GLenum; pixels: Pointer); stdcall;
@@ -51,6 +60,7 @@ procedure glTexImage2D (target: GLenum; level, components: GLint;
   width, height: GLsizei; border: GLint; format, _type: GLenum; pixels: Pointer); stdcall;
 procedure glTranslated (x,y,z: GLdouble); stdcall;
 procedure glTranslatef (x,y,z: GLfloat); stdcall;
+procedure glVertex2f (x,y: GLfloat); stdcall;
 procedure glVertex3f (x,y,z: GLfloat); stdcall;
 procedure glVertex3fv (v: PGLfloat); stdcall;
 procedure glVertex3i (x,y,z: GLint); stdcall;
@@ -63,6 +73,12 @@ implementation uses
 procedure glBegin (mode: GLenum); stdcall;
 begin
   CurrentMode := mode;
+end;
+
+procedure glBitmap (width, height: GLsizei; xorig, yorig: GLfloat;
+                    xmove, ymove: GLfloat; bitmap: Pointer); stdcall;
+begin
+  raise Exception.Create('Not implemented');
 end;
 
 procedure glClear (mask: GLbitfield); stdcall;
@@ -93,6 +109,11 @@ begin
 end;
 
 procedure glDisable (cap: GLenum); stdcall;
+begin
+  raise Exception.Create('Not implemented');
+end;
+
+procedure glDrawBuffer (mode: GLenum); stdcall;
 begin
   raise Exception.Create('Not implemented');
 end;
@@ -141,9 +162,14 @@ begin
   raise Exception.Create('Not implemented');
 end;
 
+procedure glFinish; stdcall;
+begin
+  raise Exception.Create('Not implemented');
+end;
+
 procedure glFlush;
 begin
-  TGlThread.Wait;
+//  TGlThread.Wait;
 //  raise Exception.Create('Not implemented');
 end;
 
@@ -206,6 +232,12 @@ begin
   raise Exception.Create('Not implemented');
 end;
 
+procedure glMapGrid2f (un: GLint; u1, u2: GLfloat;
+                       vn: GLint; v1, v2: GLfloat); stdcall;
+begin
+  raise Exception.Create('Not implemented');
+end;
+
 procedure glMatrixMode (mode: GLenum);
 begin
   case mode of
@@ -217,15 +249,24 @@ begin
 end;
 
 procedure glMultMatrixd (m: PGLdouble); stdcall;
+type
+  TD16 = array[0..15] of double;
+  PD16 = ^TD16;
+var
+  d16: PD16 absolute m;
+  s16: array[0..15] of Single;
+  i: Integer;
 begin
-  raise Exception.Create('Not implemented');
+  for i := 0 to 15 do
+    s16[i] := d16[i];
+  glMultMatrixf(@s16[0]);
+//  raise Exception.Create('Not implemented');
 end;
 
 procedure glMultMatrixf (m: PGLfloat); stdcall;
 var
   mat: PMatrix3D absolute m;
 begin
-//  gluLookAt(5,5,5, 0,0,0, 0,0,1);
   CurrentMatrix.MulMat(mat^);
 end;
 
@@ -285,9 +326,29 @@ begin
   MatrixStack[High(MatrixStack)] := CurrentMatrix^;
 end;
 
+procedure glReadBuffer (mode: GLenum); stdcall;
+begin
+  raise Exception.Create('Not implemented');
+end;
+
+procedure glRotatef (angle, x,y,z: GLfloat); stdcall;
+begin
+  raise Exception.Create('Not implemented');
+end;
+
 procedure glScalef (x,y,z: GLfloat); stdcall;
 begin
   raise Exception.Create('Not implemented');
+end;
+
+procedure glShadeModel (mode: GLenum); stdcall;
+begin
+  case mode of
+  GL_FLAT, GL_SMOOTH:
+    ShadeModel := mode;
+  else
+    raise Exception.Create('Not implemented');
+  end;
 end;
 
 procedure glTexCoord2f (s,t: GLfloat); stdcall;
@@ -326,6 +387,11 @@ end;
 procedure glTranslatef (x,y,z: GLfloat); stdcall;
 begin
   CurrentMatrix.Translate(x, y, z);
+end;
+
+procedure glVertex2f (x,y: GLfloat); stdcall;
+begin
+  glVertex3f(x,y,0);
 end;
 
 procedure glVertex3f (x,y,z: GLfloat); stdcall;

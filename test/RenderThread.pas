@@ -2,7 +2,7 @@ unit RenderThread;
 
 interface uses
   Windows, Messages, SysUtils, System.Classes, Forms,
-  OpenGL, DGLUT;
+  OpenGL, glut;
 
 type
   TRenderThread = class(TThread)
@@ -19,6 +19,7 @@ type
   public
     Resized: Boolean;
     ClearColor, RectColor: Single;
+    SmoothOrFlat: Boolean;
     procedure SwapBuffersSync();
   end;
 
@@ -45,20 +46,17 @@ end;
 
 procedure TRenderThread.Render;
 begin        //exit;
-  glpushMatrix; //Запомнили
-  glTranslatef(-5,0,0); //Сместили
-  glutSolidCube(1);      //Рисуем куб
-  glPopmatrix;  //Восстановили
+  if SmoothOrFlat then
+    glShadeModel(GL_FLAT) //Режим без сглаживания
+  else
+    glShadeModel(GL_SMOOTH); //Сглаживание. По умолчанию установлен режим GL_SMOOTH.
 
-  glpushMatrix; //Запомнили
-  glTranslatef(5,0,0); //Сместили
-  glutSolidSphere(2,20,20);  //Рисуем сферу
-  glPopmatrix; //Восстановили
-
-  glpushMatrix; //Запомнили
-  glTranslatef(0,5,0); //Сместили
-  glutSolidTorus(1, 2, 20, 20);//Рисуем тор
-  glPopmatrix; //Восстановили
+  glBegin(GL_QUADS);
+    glColor3f(1, 0, 0); glVertex3f(-1, -1, 0);
+    glColor3f(0, 1, 0); glVertex3f(1, -1, 0);
+    glColor3f(0, 0, 1); glVertex3f(1, 1, 0);
+    glColor3f(1, 1, 0); glVertex3f(-1, 1, 0);
+  glEnd;
 end;
 
 procedure TRenderThread.Resize;
@@ -67,16 +65,18 @@ begin
     glViewport(0, 0, ClientWidth, ClientHeight);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity;
-    glFrustum ( -ClientWidth/ClientHeight , ClientWidth/ClientHeight , -1 , 1 , 1 , 100.0 ); //Область видимости
+    gluPerspective(45.0, ClientWidth/ClientHeight, 1, 1000);
+//    glFrustum ( -ClientWidth/ClientHeight , ClientWidth/ClientHeight , -1 , 1 , 1 , 100.0 ); //Область видимости
 //    gluOrtho2D(-ClientWidth/ClientHeight, ClientWidth/ClientHeight, -1, 1);
   end;
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity; //Сбрасываем текущую матрицу
-  gluLookAt(5,5,5, 0,0,0, 0,0,1);
+  glTranslatef(0, 0, -5);
+//  gluLookAt(5,5,5, 0,0,0, 0,0,1);
   glEnable(GL_DEPTH_TEST); // включаем проверку разрешения фигур (впереди стоящая закрывает фигуру за ней)
 //  glDepthFunc(GL_LEQUAL); //тип проверки
-  glEnable(GL_LIGHTING); //включаем освещение
-  glEnable(GL_LIGHT0); //включаем источник света №0
+//  glEnable(GL_LIGHTING); //включаем освещение
+//  glEnable(GL_LIGHT0); //включаем источник света №0
   CheckGlError;
   Resized := false;
 end;

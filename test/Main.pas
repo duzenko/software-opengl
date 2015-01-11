@@ -43,7 +43,7 @@ begin
   SetPixelFormat(Canvas.Handle, i, @pfd);
   FRender := TRenderThread.Create();
   FRender.RectColor := 1;
-  FCalc := TCalcThread.Create;
+//  FCalc := TCalcThread.Create;
 end;
 
 procedure TForm1.FormDestroy(Sender: TObject);
@@ -58,6 +58,8 @@ begin
   case Key of
   VK_ESCAPE:
     Close;
+  Ord('S'):
+    FRender.SmoothOrFlat := not FRender.SmoothOrFlat;
   end;
 end;
 

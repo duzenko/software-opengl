@@ -3,10 +3,11 @@ unit wgl;
 interface uses
   Windows;
 
-function wglCreateContext(DC: HDC): HGLRC; stdcall;
-function wglMakeCurrent(DC: HDC; p2: HGLRC): BOOL; stdcall;
-function wglDeleteContext(p1: HGLRC): BOOL; stdcall;
 function wglChoosePixelFormat(DC: HDC; p2: PPixelFormatDescriptor): Integer; stdcall;
+function wglCreateContext(DC: HDC): HGLRC; stdcall;
+function wglDeleteContext(p1: HGLRC): BOOL; stdcall;
+function wglMakeCurrent(DC: HDC; p2: HGLRC): BOOL; stdcall;
+function wglShareLists(p1, p2: HGLRC): BOOL; stdcall;
 function wglSwapBuffers(DC: HDC): BOOL; stdcall;
 
 implementation uses
@@ -33,6 +34,11 @@ end;
 function wglChoosePixelFormat(DC: HDC; p2: PPixelFormatDescriptor): Integer; stdcall;
 begin
   Result := 1;
+end;
+
+function wglShareLists(p1, p2: HGLRC): BOOL; stdcall;
+begin
+  raise Exception.Create('Not implemented');
 end;
 
 function wglSwapBuffers(DC: HDC): BOOL; stdcall;
