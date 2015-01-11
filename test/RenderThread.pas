@@ -2,7 +2,7 @@ unit RenderThread;
 
 interface uses
   Windows, Messages, SysUtils, System.Classes, Forms,
-  OpenGL;
+  OpenGL, DGLUT;
 
 type
   TRenderThread = class(TThread)
@@ -13,6 +13,7 @@ type
     procedure DestroyRC;
     procedure Resize;
     procedure Render;
+    procedure UpdateFps;
   protected
     procedure Execute; override;
   public
@@ -43,32 +44,21 @@ end;
 { TRenderThread }
 
 procedure TRenderThread.Render;
-begin
-  glPointSize(20); // размер точки
+begin        //exit;
+  glpushMatrix; //Запомнили
+  glTranslatef(-5,0,0); //Сместили
+  glutSolidCube(1);      //Рисуем куб
+  glPopmatrix;  //Восстановили
 
-  glBegin(GL_POINTS);
-  glColor3f(1, 0, 0);
-  glVertex3f(-2, 5, 1);
-  glEnd;
+  glpushMatrix; //Запомнили
+  glTranslatef(5,0,0); //Сместили
+  glutSolidSphere(2,20,20);  //Рисуем сферу
+  glPopmatrix; //Восстановили
 
-glBegin(GL_LINES); //рисуем линию
-glColor3f(1,0,0); {раскрасим первую вершину}  glVertex3f(-1,0,1); //позиция первой вершины
-glColor3f(0,1,0); {раскрасим вторую вершину}   glVertex3f(-4,5,1); //позиция второй вершины
-glEnd;
-
-glBegin(GL_TRIANGLES); //рисуем треугольник
-glColor3f(1,0,0);  glVertex3f(0,5,1); //первая вершина
-glColor3f(0,1,0);  glVertex3f(1,4,1); //вторая вершина
-glColor3f(0,1,0);  glVertex3f(-1,4,1); //третья вершина
-glEnd;
-
-glBegin(GL_QUADS); //рисуем квадрат
-glColor3f(1,0,0);  glVertex3i(-1,1,0); //первая вершина
-glColor3f(0,1,0);  glVertex3f(1,1,-0); //вторая вершина
-glColor3f(0,1,1);  glVertex3f(1,-1,-0); //третья вершина
-glColor3f(0,0,1);  glVertex3f(-1,-1,0); //четвёртая вершина
-glEnd;
-
+  glpushMatrix; //Запомнили
+  glTranslatef(0,5,0); //Сместили
+  glutSolidTorus(1, 2, 20, 20);//Рисуем тор
+  glPopmatrix; //Восстановили
 end;
 
 procedure TRenderThread.Resize;
@@ -83,7 +73,10 @@ begin
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity; //Сбрасываем текущую матрицу
   gluLookAt(5,5,5, 0,0,0, 0,0,1);
-  //gluLookAt(0,-2,0, 0,0,0, 0,0,1); //позиция наблюдателя
+  glEnable(GL_DEPTH_TEST); // включаем проверку разрешения фигур (впереди стоящая закрывает фигуру за ней)
+//  glDepthFunc(GL_LEQUAL); //тип проверки
+  glEnable(GL_LIGHTING); //включаем освещение
+  glEnable(GL_LIGHT0); //включаем источник света №0
   CheckGlError;
   Resized := false;
 end;
@@ -113,7 +106,7 @@ begin
   while not Resized do
     Sleep(1);
   while not Application.Terminated do begin
-    Sleep(1);
+//    Sleep(1);
 
     if Resized then
       Resize;
@@ -126,7 +119,7 @@ begin
 
     if not SwapBuffers(FDC) then
       RaiseLastOSError;
-    PostMessage(Application.MainForm.Handle, WM_USER, 0, 0);
+    UpdateFps;
   end;
   DestroyRC;
 end;
@@ -135,6 +128,21 @@ procedure TRenderThread.SwapBuffersSync;
 begin
   if not SwapBuffers(FDC) then
     RaiseLastOSError;
+end;
+
+procedure TRenderThread.UpdateFps;
+const {$J+}
+  Frames: Integer = 0;
+  LastUpdate: Double = 0;
+begin
+  if LastUpdate = 0 then
+    LastUpdate := PreciseTime;
+  Inc(Frames);
+  if LastUpdate + 1 <= PreciseTime then begin
+    PostMessage(Application.MainForm.Handle, WM_USER, 0, Frames);
+    LastUpdate := PreciseTime;
+    Frames := 0;
+  end;
 end;
 
 end.

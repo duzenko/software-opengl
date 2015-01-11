@@ -10,7 +10,7 @@ function wglChoosePixelFormat(DC: HDC; p2: PPixelFormatDescriptor): Integer; std
 function wglSwapBuffers(DC: HDC): BOOL; stdcall;
 
 implementation uses
-  SysUtils, Graphics, soft3d;
+  SysUtils, Graphics, soft3d, gl;
 
 function wglCreateContext(DC: HDC): HGLRC;
 begin
@@ -37,6 +37,7 @@ end;
 
 function wglSwapBuffers(DC: HDC): BOOL; stdcall;
 begin
+  glFlush;
   Result := true;
   if not BitBlt(DC, 0, 0, BackBuffer.Width, BackBuffer.Height, BackBuffer.Canvas.Handle, 0, 0, SRCCOPY) then
     RaiseLastOSError;

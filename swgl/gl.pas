@@ -1,34 +1,7 @@
 unit gl;
 
 interface uses
-  Windows, Types;
-
-type
-  HGLRC = type UINT_PTR;
-  GLbitfield = Cardinal;
-  GLclampf = Single;
-  GLdouble = Double;
-  GLenum = Cardinal;
-  GLfloat = Single;
-  GLint = Integer;
-  GLsizei = Integer;
-
-  PGLdouble = ^GLDouble;
-  PGLfloat =  ^GLFloat;
-  PGLInt = ^GLInt;
-
-const
-  GL_COLOR_BUFFER_BIT                 = $00004000;
-
-  GL_POINTS                           = $0000    ;
-  GL_LINES                            = $0001    ;
-  GL_TRIANGLES                        = $0004    ;
-  GL_TRIANGLE_STRIP                   = $0005    ;
-  GL_TRIANGLE_FAN                     = $0006    ;
-  GL_QUADS                            = $0007    ;
-
-  GL_MODELVIEW                        = $1700;
-  GL_PROJECTION                       = $1701;
+  Windows, Types, OpenGL;
 
 procedure glBegin (mode: GLenum); stdcall;
 procedure glClear (mask: GLbitfield); stdcall;
@@ -61,12 +34,15 @@ procedure glMatrixMode (mode: GLenum); stdcall;
 procedure glMultMatrixd (m: PGLdouble); stdcall;
 procedure glMultMatrixf (m: PGLfloat); stdcall;
 procedure glNormal3f (nx, ny, nz: GLFloat); stdcall;
+procedure glNormal3fv (v: PGLfloat); stdcall;
 procedure glOrtho (left, right, bottom, top, zNear, zFar: GLdouble); stdcall;
 procedure glPixelStorei (pname: GLenum; param: GLint); stdcall;
 procedure glPointSize (size: GLfloat); stdcall;
 procedure glPolygonMode (face, mode: GLenum); stdcall;
 procedure glPopAttrib; stdcall;
+procedure glPopMatrix; stdcall;
 procedure glPushAttrib(mask: GLbitfield); stdcall;
+procedure glPushMatrix; stdcall;
 procedure glScalef (x,y,z: GLfloat); stdcall;
 procedure glTexCoord2f (s,t: GLfloat); stdcall;
 procedure glTexImage1D (target: GLenum; level, components: GLint;
@@ -76,12 +52,13 @@ procedure glTexImage2D (target: GLenum; level, components: GLint;
 procedure glTranslated (x,y,z: GLdouble); stdcall;
 procedure glTranslatef (x,y,z: GLfloat); stdcall;
 procedure glVertex3f (x,y,z: GLfloat); stdcall;
+procedure glVertex3fv (v: PGLfloat); stdcall;
 procedure glVertex3i (x,y,z: GLint); stdcall;
 //procedure glVertex4f (x,y,z,w: GLfloat); stdcall;
 procedure glViewport (x,y: GLint; width, height: GLsizei); stdcall;
 
 implementation uses
-  Graphics, SysUtils, Math, Utils, soft3d, Vector3DHelper, glu;
+  Graphics, SysUtils, Math, Utils, soft3d, Vector3DHelper, Parallel;
 
 procedure glBegin (mode: GLenum); stdcall;
 begin
@@ -90,7 +67,11 @@ end;
 
 procedure glClear (mask: GLbitfield); stdcall;
 begin
-  FillMem32(BackBuffer.Canvas.Brush.Color, PixelData, BackBuffer.Height*BackBuffer.Width);
+//  FillMem32(BackBuffer.Canvas.Brush.Color, PixelData, BackBuffer.Height*BackBuffer.Width);
+//  FillMem32($ff7fffff, DepthBuffer, Length(DepthBuffer));
+  TGlThread.FillMem32(BackBuffer.Canvas.Brush.Color, PixelData, BackBuffer.Height*BackBuffer.Width);
+  TGlThread.FillMem32($ff7fffff, DepthBuffer, Length(DepthBuffer));
+  TGlThread.Wait;
 end;
 
 procedure glClearColor (red, green, blue, alpha: GLclampf);
@@ -118,19 +99,21 @@ end;
 
 procedure glEnable (cap: GLenum); stdcall;
 begin
-  raise Exception.Create('Not implemented');
-end;
-
-procedure glEnd; stdcall;
-begin
-  case CurrentMode of
-  GL_POINTS: DrawPoints;
-  GL_LINES:  DrawLines;
-  GL_TRIANGLES:  DrawTriangles;
-  GL_QUADS:  DrawQuads;
+  case cap of
+  GL_LIGHTING:
+    Lighting := true;
+  GL_LIGHT0..GL_LIGHT7:
+    Lights[cap].On := true;
+  GL_DEPTH_TEST:
+    DepthTest := true;
   else
     raise Exception.Create('Not implemented');
   end;
+end;
+
+procedure glEnd; stdcall;
+begin           // exit;
+  DrawPrimitives;
 end;
 
 procedure glEvalCoord1f (u: GLfloat); stdcall;
@@ -160,6 +143,7 @@ end;
 
 procedure glFlush;
 begin
+  TGlThread.Wait;
 //  raise Exception.Create('Not implemented');
 end;
 
@@ -246,8 +230,17 @@ begin
 end;
 
 procedure glNormal3f (nx, ny, nz: GLFloat); stdcall;
+var
+  n: TVector3D absolute nx;
 begin
-  raise Exception.Create('Not implemented');
+  CurrentNormal := n;
+  CurrentNormal.W := 0;
+end;
+
+procedure glNormal3fv (v: PGLfloat); stdcall;
+begin
+  CurrentNormal := PVector3D(v)^;
+  CurrentNormal.W := 0;
 end;
 
 procedure glOrtho (left, right, bottom, top, zNear, zFar: GLdouble); stdcall;
@@ -275,9 +268,21 @@ begin
   raise Exception.Create('Not implemented');
 end;
 
+procedure glPopMatrix; stdcall;
+begin
+  CurrentMatrix^ := MatrixStack[High(MatrixStack)];
+  SetLength(MatrixStack, Length(MatrixStack) - 1);
+end;
+
 procedure glPushAttrib(mask: GLbitfield); stdcall;
 begin
   raise Exception.Create('Not implemented');
+end;
+
+procedure glPushMatrix; stdcall;
+begin
+  SetLength(MatrixStack, Length(MatrixStack) + 1);
+  MatrixStack[High(MatrixStack)] := CurrentMatrix^;
 end;
 
 procedure glScalef (x,y,z: GLfloat); stdcall;
@@ -309,6 +314,7 @@ begin
   PixelSize.Width := width;
   PixelSize.Height := height;
   PixelData := BackBuffer.ScanLine[BackBuffer.Height-1];
+  SetLength(DepthBuffer, width*height);
   BackBuffer.Canvas.Lock;
 end;
 
@@ -327,6 +333,11 @@ var
   v: TVector3D absolute x;
 begin
   AddVertex3f(v);
+end;
+
+procedure glVertex3fv (v: PGLfloat); stdcall;
+begin
+  AddVertex3f(PVector3D(v)^);
 end;
 
 procedure glVertex3i (x,y,z: GLint); stdcall;

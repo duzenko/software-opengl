@@ -74,21 +74,8 @@ begin
 end;
 
 procedure TForm1.WMUser(var msg: TMessage);
-const {$J+}
-  Frames: Integer = 0;
-  LastUpdate: Double = 0;
-  Fps: String = '?';
 begin
-//  FRender.SwapBuffersSync();
-  if LastUpdate = 0 then
-    LastUpdate := PreciseTime;
-  Inc(Frames);
-  if LastUpdate + 1 <= PreciseTime then begin
-    Fps := IntToStr(Frames);
-    LastUpdate := PreciseTime;
-    Frames := 0;
-    Caption := Fps + ' fps';
-  end;
+  Caption := IntToStr(msg.LParam) + ' fps';
 end;
 
 end.

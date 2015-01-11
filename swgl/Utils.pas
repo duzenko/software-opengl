@@ -105,9 +105,17 @@ end;
 
 procedure FillMem128(val: DWORD; mem: Pointer; Cnt: DWORD);
 asm
+@align:
+  test mem, $f
+  jz @ok
+  mov [mem], val
+  add mem, 4
+  dec cnt
+  jmp @align
+@ok:
+  shr Cnt, 2
   movd xmm0, val
   shufps xmm0, xmm0, 0
-  movaps xmm1, xmm0
 @loopStart:
   movntps dqword ptr [mem], xmm0
   add mem, 16

@@ -60,7 +60,7 @@
         <DCC_RemoteDebug>true</DCC_RemoteDebug>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1_Win32)'!=''">
-        <Manifest_File>None</Manifest_File>
+        <DCC_Optimize>true</DCC_Optimize>
         <DCC_DebugInfoInExe>false</DCC_DebugInfoInExe>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <VerInfo_Locale>1033</VerInfo_Locale>
@@ -83,6 +83,7 @@
         <DCCReference Include="soft3d.pas"/>
         <DCCReference Include="Utils.pas"/>
         <DCCReference Include="Vector3DHelper.pas"/>
+        <DCCReference Include="Parallel.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

@@ -1,7 +1,7 @@
 unit glu;
 
 interface uses
-  gl;
+  OpenGL, gl;
 
 function gluErrorString (errCode: GLenum): PAnsiChar; stdcall;
 procedure gluLookAt(eyex, eyey, eyez,
